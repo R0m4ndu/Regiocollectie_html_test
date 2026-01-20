@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <title>Regiocollectie - Regionaal Archief Alkmaar</title>
 
-    <!-- Allow framing from any origin (helps with X-Frame-Options) -->
-    <meta http-equiv="X-Frame-Options" content="ALLOWALL">
-    <meta http-equiv="Content-Security-Policy" content="frame-ancestors *;">
+    <base href="https://www.regionaalarchiefalkmaar.nl/">
 
-    <!-- Load external CSS -->
+    <!-- Allow iframe embedding -->
+    <meta http-equiv="X-Frame-Options" content="ALLOWALL">
+    <meta http-equiv="Content-Security-Policy" content="frame-ancestors *; script-src 'self' 'unsafe-inline' https://*; style-src 'self' 'unsafe-inline' https://*; img-src * data:;">
+
     <link rel="stylesheet" href="https://webservices.memorix.nl/mediabank/2.0/dist/css/vendors.css">
     <link rel="stylesheet" href="https://webservices.memorix.nl/mediabank/2.0/dist/css/mediabank.css">
   </head>
@@ -20,7 +21,6 @@
     data-api-url="https://webservices.memorix.nl/mediabank"
   ></pic-mediabank>
 
-  <!-- Load scripts with defer to avoid timing issues -->
   <script defer src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script defer src="https://images.memorix.nl/topviewer/1.0/src/topviewer.compressed.js"></script>
   <script defer src="https://webservices.memorix.nl/mediabank/2.0/dist/js/mediabank-deps.min.js"></script>
@@ -28,44 +28,49 @@
   <script defer src="https://webservices.memorix.nl/mediabank/2.0/dist/js/mediabank.min.js"></script>
 
   <script>
-    // Wait for full window load (better for iframes than document.ready)
-    window.onload = function() {
-      // Small delay to ensure Angular libs are ready
-      setTimeout(function() {
-        if (typeof angular !== 'undefined') {
-          angular.element(document).ready(function() {
-            if (angular.module('Mediabank.Boot')) {
-              angular.module('Mediabank.Boot')
-                .run(function(gettextCatalog, MediabankConfig) {
-                  MediabankConfig.whenInitialized().then(function() {
-                    gettextCatalog.setCurrentLanguage('nl');
-                    var galleryModes = [
-                      {id: 'horizontal'},
-                      {id: 'vertical'},
-                      {id: 'gallery'},
-                      {id: 'list'}
-                    ];
+    // Enhanced bootstrap: Use window.onload for iframes/static hosts, with fallback
+    function initMediabank() {
+      if (typeof angular === 'undefined') {
+        console.error('Angular not loaded - check script errors');
+        return;
+      }
+      angular.element(document).ready(function() {
+        try {
+          angular.module('Mediabank.Boot')
+            .run(function(gettextCatalog, MediabankConfig) {
+              MediabankConfig.whenInitialized().then(function() {
+                gettextCatalog.setCurrentLanguage('nl');
+                var galleryModes = [
+                  {id: 'horizontal'},
+                  {id: 'vertical'},
+                  {id: 'gallery'},
+                  {id: 'list'}
+                ];
 
-                    MediabankConfig
-                      .setOption('gallery.modes', galleryModes)
-                      .setOption('gallery.default', 'horizontal')
-                      .setOption('gallery.pagination.endless', true)
-                      .setOption('gallery.pagination.bottom', false)
-                      .setOption('gallery.pagination.topTemplate',
-                                 'pagination/views/directives/pagination-count.html');
-                  });
-                });
+                MediabankConfig
+                  .setOption('gallery.modes', galleryModes)
+                  .setOption('gallery.default', 'horizontal')
+                  .setOption('gallery.pagination.endless', true)
+                  .setOption('gallery.pagination.bottom', false)
+                  .setOption('gallery.pagination.topTemplate',
+                             'pagination/views/directives/pagination-count.html');
+              });
+            });
 
-              angular.bootstrap(document, ['Mediabank.Boot']);
-            } else {
-              console.error('Angular or Mediabank.Boot module not loaded');
-            }
-          });
-        } else {
-          console.error('Angular not loaded');
+          angular.bootstrap(document, ['Mediabank.Boot']);
+          console.log('Mediabank bootstrapped successfully');
+        } catch (e) {
+          console.error('Bootstrap error:', e);
         }
-      }, 1000); // 1-second buffer for script loading
-    };
+      });
+    }
+
+    // Trigger on full load (better for cross-origin/iframes)
+    if (document.readyState === 'loading') {
+      window.addEventListener('load', initMediabank);
+    } else {
+      initMediabank();  // Already loaded
+    }
   </script>
 </body>
 </html>
